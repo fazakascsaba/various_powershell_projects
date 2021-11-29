@@ -202,6 +202,7 @@ Function pp_inc_generic{
                 copy-item "EPIN.TXT" "C:\EP40\C<BIN>\INCOMING\temp_folder\$b"
             }else{
                 copy-item "EPIN.TXT" "C:\EP40\C<BIN>\INCOMING\jenkins\EPIN_BPCPS_$($bin)_$($date1)_001_PROD_$date.TXT"
+                extract_TC33A -tc33_BIN $bin -date $date
             }
         }else{
             log -text "ERROR [$bin $runType] EPIN.txt does not exist."
@@ -279,7 +280,40 @@ Function cleanup{
         $filesToClean | %{remove-item $_}
         }
     }
+Function extract_TC33A{
+    param (
+        [String]$tc33_BIN,
+        [String]$date
+    )
+    # START for partial execution
+    # $tc33_BIN="439747"
+    # $date="2021-11-27-12-05-45"
+    # END for partial execution
 
+    $initialFolder=$(get-location).path
+    sl "C:\EP40\C$tc33_BIN\INCOMING"
+    $ofile="TC33_extract_$($date).txt"
+
+    $export=$False
+    gc EPIN.TXT | %{
+        if($_ -like "33*HEDR*"){
+            $export=$True
+        }
+        if($export){
+            $_ >> $ofile
+        }
+    
+        if($_ -like "33*TRLR*"){
+            $export=$False
+        }
+    }
+    if(-not(test-path jenkins_tc33)){new-item jenkins_tc33 -ItemType directory}
+    if(test-path $ofile){
+        move-item $ofile jenkins_tc33 -Force
+    }
+
+    set-location $initialFolder
+}
 
 # PARAMETERS
 $BFLocation="C:\EP40\BatchFacility"
